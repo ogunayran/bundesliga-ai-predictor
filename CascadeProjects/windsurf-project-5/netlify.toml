@@ -1,6 +1,7 @@
 [build]
-  publish = "public"
-  functions = "netlify/functions"
+  base = "CascadeProjects/windsurf-project-5"
+  publish = "CascadeProjects/windsurf-project-5/public"
+  functions = "CascadeProjects/windsurf-project-5/netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
