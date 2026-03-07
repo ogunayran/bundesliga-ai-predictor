@@ -1,4 +1,4 @@
-const { getProductById } = require('../../src/database/db');
+const { products } = require('./data');
 const pricingEngine = require('../../src/pricing/pricingEngine');
 
 exports.handler = async (event, context) => {
@@ -17,10 +17,10 @@ exports.handler = async (event, context) => {
     const path = event.path.replace('/.netlify/functions/pricing', '');
     
     if (path.includes('/product/')) {
-      const productId = path.split('/product/')[1].split('/')[0];
+      const productId = parseInt(path.split('/product/')[1].split('/')[0]);
       const { strategy = 'combined' } = event.queryStringParameters || {};
       
-      const product = await getProductById(productId);
+      const product = products.find(p => p.id === productId);
       if (!product) {
         return {
           statusCode: 404,

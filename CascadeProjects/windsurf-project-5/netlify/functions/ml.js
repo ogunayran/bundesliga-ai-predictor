@@ -1,5 +1,6 @@
-const { getProductById } = require('../../src/database/db');
-const mlRouter = require('../../src/routes/ml');
+const { products } = require('./data');
+const PriceOptimizer = require('../../src/ml/priceOptimizer');
+const optimizer = new PriceOptimizer();
 
 exports.handler = async (event, context) => {
   const headers = {
@@ -17,8 +18,8 @@ exports.handler = async (event, context) => {
     const path = event.path.replace('/.netlify/functions/ml', '');
     
     if (path.includes('/predict/')) {
-      const productId = path.split('/predict/')[1];
-      const product = await getProductById(productId);
+      const productId = parseInt(path.split('/predict/')[1]);
+      const product = products.find(p => p.id === productId);
       
       if (!product) {
         return {
@@ -28,7 +29,7 @@ exports.handler = async (event, context) => {
         };
       }
       
-      const prediction = mlRouter.predictOptimalPrice(product);
+      const prediction = optimizer.predictOptimalPrice(product);
       
       return {
         statusCode: 200,
@@ -46,8 +47,8 @@ exports.handler = async (event, context) => {
     }
     
     if (path.includes('/simulate/')) {
-      const productId = path.split('/simulate/')[1];
-      const product = await getProductById(productId);
+      const productId = parseInt(path.split('/simulate/')[1]);
+      const product = products.find(p => p.id === productId);
       
       if (!product) {
         return {
@@ -57,7 +58,7 @@ exports.handler = async (event, context) => {
         };
       }
       
-      const scenarios = mlRouter.simulateScenarios(product);
+      const scenarios = optimizer.simulateScenarios(product);
       
       return {
         statusCode: 200,

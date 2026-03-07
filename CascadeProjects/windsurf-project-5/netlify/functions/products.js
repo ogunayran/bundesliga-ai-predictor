@@ -1,4 +1,4 @@
-const { getAllProducts, getProductById } = require('../../src/database/db');
+const { products } = require('./data');
 
 exports.handler = async (event, context) => {
   const headers = {
@@ -17,8 +17,8 @@ exports.handler = async (event, context) => {
     
     if (event.httpMethod === 'GET') {
       if (path && path !== '/') {
-        const id = path.split('/')[1];
-        const product = await getProductById(id);
+        const id = parseInt(path.split('/')[1]);
+        const product = products.find(p => p.id === id);
         
         if (!product) {
           return {
@@ -36,7 +36,6 @@ exports.handler = async (event, context) => {
       }
       
       const { category, limit = 20 } = event.queryStringParameters || {};
-      const products = await getAllProducts();
       
       let filtered = products;
       if (category) {
