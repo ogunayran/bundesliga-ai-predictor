@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🇩🇪 Bundesliga AI Tahmin Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #000000 0%, #d00027 100%);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .main-header {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 3px solid #d00027;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #000000, #d00027, #ffce00);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .match-card {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #d00027;
+        }
+        
+        .live-badge {
+            background: #ff0000;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .prediction-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .pred-home { background: #28a745; }
+        .pred-draw { background: #ffc107; color: #000; }
+        .pred-away { background: #dc3545; }
+        
+        .confidence-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d00027, #ffce00);
+            transition: width 0.5s;
+        }
+        
+        .standings-table {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .standings-table th {
+            background: #d00027;
+            color: white;
+            padding: 1rem;
+            border: none;
+        }
+        
+        .standings-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .standings-table tr:hover {
+            background: rgba(208, 0, 39, 0.2);
+        }
+        
+        .champion-zone { border-left: 4px solid #FFD700; }
+        .champions-league { border-left: 4px solid #0066cc; }
+        .europa-league { border-left: 4px solid #ff6600; }
+        .relegation { border-left: 4px solid #dc3545; }
+        
+        .nav-tabs .nav-link {
+            color: #fff;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            margin-right: 0.5rem;
+            border-radius: 10px 10px 0 0;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background: #d00027;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="logo">🇩🇪 BUNDESLIGA AI</div>
+                    <p class="mb-0">2025-26 Sezonu • Canlı Skorlar & AI Tahminleri</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="stat-card d-inline-block">
+                        <h6 class="mb-1">Model Doğruluğu</h6>
+                        <h3 class="mb-0" id="model-accuracy">--%</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- İstatistikler -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <h6>Toplam Maç</h6>
+                    <h2 id="total-matches">--</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <h6>Tamamlanan</h6>
+                    <h2 id="finished-matches">--</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <h6>Takım Sayısı</h6>
+                    <h2 id="total-teams">--</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card text-center">
+                    <h6>Hafta</h6>
+                    <h2 id="total-matchdays">--</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sekmeler -->
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#live-scores">🔴 Canlı Skorlar</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#predictions">🤖 AI Tahminleri</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#power-rankings">💪 Güç Sıralaması</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#top-scorers">⚽ Gol Kralları</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#past-matches">📅 Geçmiş Maçlar</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#standings">📊 Puan Durumu</a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Canlı Skorlar -->
+            <div class="tab-pane fade show active" id="live-scores">
+                <h3 class="mb-3">🔴 Canlı Maçlar ve Yaklaşan Karşılaşmalar</h3>
+                <div id="live-scores-container">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-light" role="status"></div>
+                        <p class="mt-2">Canlı skorlar yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Tahminleri -->
+            <div class="tab-pane fade" id="predictions">
+                <h3 class="mb-3">🤖 Gelecek Hafta AI Tahminleri</h3>
+                <div id="predictions-container">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-light" role="status"></div>
+                        <p class="mt-2">Tahminler yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Güç Sıralaması -->
+            <div class="tab-pane fade" id="power-rankings">
+                <h3 class="mb-3">💪 Güç Sıralaması (Power Rankings)</h3>
+                <div class="standings-table">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Takım</th>
+                                <th>Güç Skoru</th>
+                                <th>xG</th>
+                                <th>Form</th>
+                                <th>Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="power-rankings-body">
+                            <tr>
+                                <td colspan="6" class="text-center py-5">
+                                    <div class="spinner-border text-light" role="status"></div>
+                                    <p class="mt-2">Güç sıralaması yükleniyor...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Gol Kralları -->
+            <div class="tab-pane fade" id="top-scorers">
+                <h3 class="mb-3">⚽ Gol Kralları (2025-26)</h3>
+                <div class="standings-table">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Oyuncu</th>
+                                <th>Takım</th>
+                                <th>Goller</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-scorers-body">
+                            <tr>
+                                <td colspan="4" class="text-center py-5">
+                                    <div class="spinner-border text-light" role="status"></div>
+                                    <p class="mt-2">Gol kralları yükleniyor...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Geçmiş Maçlar -->
+            <div class="tab-pane fade" id="past-matches">
+                <h3 class="mb-3">📅 Geçmiş Maçlar (Hafta Hafta)</h3>
+                <div id="past-matches-container">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-light" role="status"></div>
+                        <p class="mt-2">Geçmiş maçlar yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Puan Durumu -->
+            <div class="tab-pane fade" id="standings">
+                <h3 class="mb-3">📊 2025-26 Sezonu Puan Durumu</h3>
+                <div class="standings-table">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Takım</th>
+                                <th>O</th>
+                                <th>G</th>
+                                <th>B</th>
+                                <th>M</th>
+                                <th>A</th>
+                                <th>Y</th>
+                                <th>AV</th>
+                                <th>P</th>
+                            </tr>
+                        </thead>
+                        <tbody id="standings-body">
+                            <tr>
+                                <td colspan="10" class="text-center py-5">
+                                    <div class="spinner-border text-light" role="status"></div>
+                                    <p class="mt-2">Puan durumu yükleniyor...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3">
+                    <small>
+                        <span class="champion-zone d-inline-block px-2 py-1 me-2">Şampiyon</span>
+                        <span class="champions-league d-inline-block px-2 py-1 me-2">Şampiyonlar Ligi</span>
+                        <span class="europa-league d-inline-block px-2 py-1 me-2">Avrupa Ligi</span>
+                        <span class="relegation d-inline-block px-2 py-1">Düşme</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // İstatistikleri yükle
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                document.getElementById('total-matches').textContent = data.total_matches || 0;
+                document.getElementById('finished-matches').textContent = data.finished_matches || 0;
+                document.getElementById('total-teams').textContent = data.total_teams || 0;
+                document.getElementById('total-matchdays').textContent = data.total_matchdays || 0;
+                document.getElementById('model-accuracy').textContent = 
+                    (data.model_accuracy * 100).toFixed(1) + '%';
+            } catch (error) {
+                console.error('İstatistik yükleme hatası:', error);
+            }
+        }
+
+        // Canlı skorları yükle
+        async function loadLiveScores() {
+            try {
+                const response = await fetch('/api/live-scores');
+                const matches = await response.json();
+                
+                const container = document.getElementById('live-scores-container');
+                
+                if (matches.length === 0) {
+                    container.innerHTML = '<div class="text-center py-5"><p>Şu anda canlı maç yok</p></div>';
+                    return;
+                }
+                
+                const now = new Date();
+                
+                container.innerHTML = matches.map(match => {
+                    const isLive = match.status === 'Live';
+                    const cardStyle = isLive ? 'border-left: 5px solid #dc3545; background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(0, 0, 0, 0) 100%);' : '';
+                    
+                    return `
+                    <div class="match-card" style="${cardStyle}">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                ${isLive ? `<div class="mb-2">
+                                    <span class="live-badge" style="animation: pulse 2s infinite;">
+                                        🔴 CANLI ${match.minute ? `- ${match.minute}'` : ''}
+                                    </span>
+                                    <small class="text-muted ms-2">Otomatik Güncelleniyor</small>
+                                </div>` : ''}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="flex-grow-1">
+                                        <h5 class="mb-1">${match.home_team}</h5>
+                                        <h5 class="mb-0">${match.away_team}</h5>
+                                    </div>
+                                    <div class="text-center mx-4">
+                                        <h1 class="mb-0" style="color: ${isLive ? '#ffce00' : '#fff'}; font-weight: bold;">
+                                            ${match.home_score !== null ? match.home_score : '-'}
+                                            <span style="color: #666;">:</span>
+                                            ${match.away_score !== null ? match.away_score : '-'}
+                                        </h1>
+                                        ${isLive && match.minute ? `<div class="mt-1"><span class="badge bg-danger">${match.minute}'</span></div>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <p class="mb-0 mt-2">
+                                    <small>${new Date(match.match_datetime).toLocaleString('tr-TR')}</small>
+                                </p>
+                                <p class="mb-0"><small>Hafta ${match.matchday}</small></p>
+                                ${isLive ? `<p class="mb-0 mt-2"><small class="text-muted">Son güncelleme: ${now.toLocaleTimeString('tr-TR')}</small></p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `}).join('');
+            } catch (error) {
+                console.error('Canlı skor yükleme hatası:', error);
+                document.getElementById('live-scores-container').innerHTML = 
+                    '<div class="text-center py-5"><p>Canlı skorlar yüklenemedi</p></div>';
+            }
+        }
+
+        // Tahminleri yükle - Gelişmiş özelliklerle
+        async function loadPredictions() {
+            try {
+                const response = await fetch('/api/predictions');
+                const predictions = await response.json();
+                
+                const container = document.getElementById('predictions-container');
+                
+                if (predictions.length === 0) {
+                    container.innerHTML = '<div class="text-center py-5"><p>Tahmin bulunamadı</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = predictions.map(pred => {
+                    const predClass = pred.prediction === 'Home Win' ? 'pred-home' : 
+                                     pred.prediction === 'Draw' ? 'pred-draw' : 'pred-away';
+                    
+                    const getMomentumIcon = (momentum) => {
+                        if (momentum === 'rising') return '📈';
+                        if (momentum === 'falling') return '📉';
+                        return '➡️';
+                    };
+                    
+                    return `
+                        <div class="match-card" style="border-left: 4px solid ${pred.prediction === 'Home Win' ? '#28a745' : pred.prediction === 'Draw' ? '#ffc107' : '#dc3545'};">
+                            <div class="row align-items-center">
+                                <div class="col-md-7">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <h5 class="mb-0">${pred.home_team}</h5>
+                                            <small class="text-muted">
+                                                Form: ${pred.form_home || 'N/A'} | 
+                                                ${getMomentumIcon(pred.momentum_home)} ${pred.momentum_home || 'stable'} |
+                                                xG: ${pred.xg_home ? pred.xg_home.toFixed(2) : 'N/A'}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="mb-0">${pred.away_team}</h5>
+                                            <small class="text-muted">
+                                                Form: ${pred.form_away || 'N/A'} | 
+                                                ${getMomentumIcon(pred.momentum_away)} ${pred.momentum_away || 'stable'} |
+                                                xG: ${pred.xg_away ? pred.xg_away.toFixed(2) : 'N/A'}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <p class="mb-0 mt-2">
+                                        <small>${new Date(pred.match_datetime).toLocaleString('tr-TR')}</small>
+                                    </p>
+                                </div>
+                                <div class="col-md-5 text-end">
+                                    <span class="prediction-badge ${predClass}">
+                                        ${pred.prediction === 'Home Win' ? '🏠 Ev Sahibi' : 
+                                          pred.prediction === 'Draw' ? '🤝 Beraberlik' : '✈️ Deplasman'}
+                                    </span>
+                                    <div class="mt-2">
+                                        <small class="text-muted">${(pred.confidence * 100).toFixed(1)}% güven</small>
+                                    </div>
+                                    ${pred.predicted_score ? `
+                                        <div class="mt-2">
+                                            <strong style="color: #ffce00; font-size: 1.3em;">
+                                                ⚽ ${pred.predicted_score}
+                                            </strong>
+                                        </div>
+                                    ` : ''}
+                                    <div class="mt-2">
+                                        <small>
+                                            Ev: ${(pred.probabilities['Home Win'] * 100).toFixed(0)}% | 
+                                            Ber: ${(pred.probabilities['Draw'] * 100).toFixed(0)}% | 
+                                            Dep: ${(pred.probabilities['Away Win'] * 100).toFixed(0)}%
+                                        </small>
+                                    </div>
+                                    ${pred.top_scorer_home ? `
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                🎯 ${pred.top_scorer_home} vs ${pred.top_scorer_away || 'N/A'}
+                                            </small>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Tahmin yükleme hatası:', error);
+                document.getElementById('predictions-container').innerHTML = 
+                    '<div class="text-center py-5"><p>Tahminler yüklenemedi</p></div>';
+            }
+        }
+
+        // Güç sıralamasını yükle
+        async function loadPowerRankings() {
+            try {
+                const response = await fetch('/api/power-rankings');
+                const rankings = await response.json();
+                
+                const tbody = document.getElementById('power-rankings-body');
+                
+                if (rankings.error || rankings.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5">Güç sıralaması bulunamadı</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = rankings.map(rank => {
+                    const getTrendIcon = (trend) => {
+                        if (trend === 'rising') return '📈';
+                        if (trend === 'falling') return '📉';
+                        return '➡️';
+                    };
+                    
+                    return `
+                        <tr>
+                            <td><strong>${rank.rank}</strong></td>
+                            <td><strong>${rank.team}</strong></td>
+                            <td>${rank.power_score.toFixed(1)}</td>
+                            <td>${rank.xg.toFixed(2)}</td>
+                            <td><span class="badge bg-secondary">${rank.form}</span></td>
+                            <td>${getTrendIcon(rank.trend)} ${rank.trend}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Güç sıralaması hatası:', error);
+            }
+        }
+
+        // Gol krallarını yükle
+        async function loadTopScorers() {
+            try {
+                const response = await fetch('/api/top-scorers');
+                const scorers = await response.json();
+                
+                const tbody = document.getElementById('top-scorers-body');
+                
+                if (scorers.error || scorers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5">Gol kralları bulunamadı</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = scorers.map((scorer, index) => {
+                    const medalIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                    
+                    return `
+                        <tr>
+                            <td><strong>${index + 1}</strong> ${medalIcon}</td>
+                            <td><strong>${scorer.name}</strong></td>
+                            <td>${scorer.team || 'N/A'}</td>
+                            <td><strong style="color: #ffce00;">${scorer.goals}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Gol kralları hatası:', error);
+            }
+        }
+
+        // Geçmiş maçları yükle
+        async function loadPastMatches() {
+            try {
+                const response = await fetch('/api/past-matches');
+                const weeklyMatches = await response.json();
+                
+                const container = document.getElementById('past-matches-container');
+                
+                if (weeklyMatches.length === 0) {
+                    container.innerHTML = '<div class="text-center py-5"><p>Geçmiş maç bulunamadı</p></div>';
+                    return;
+                }
+                
+                container.innerHTML = weeklyMatches.map(week => `
+                    <div class="mb-4">
+                        <h5 class="mb-3" style="color: #d00027;">⚽ ${week.matchday}. Hafta</h5>
+                        ${week.matches.map(match => `
+                            <div class="match-card">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-0">${match.home_team}</h6>
+                                                <h6 class="mb-0">${match.away_team}</h6>
+                                            </div>
+                                            <div class="text-center mx-4">
+                                                <h3 class="mb-0" style="color: #ffce00;">
+                                                    ${match.home_score} : ${match.away_score}
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <small>${new Date(match.match_datetime).toLocaleDateString('tr-TR')}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Geçmiş maçlar yükleme hatası:', error);
+                document.getElementById('past-matches-container').innerHTML = 
+                    '<div class="text-center py-5"><p>Geçmiş maçlar yüklenemedi</p></div>';
+            }
+        }
+
+        // Puan durumunu yükle
+        async function loadStandings() {
+            try {
+                const response = await fetch('/api/standings');
+                const standings = await response.json();
+                
+                const tbody = document.getElementById('standings-body');
+                
+                if (standings.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10" class="text-center py-5">Puan durumu bulunamadı</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = standings.map((team, index) => {
+                    let zoneClass = '';
+                    if (index === 0) zoneClass = 'champion-zone';
+                    else if (index < 4) zoneClass = 'champions-league';
+                    else if (index < 6) zoneClass = 'europa-league';
+                    else if (index >= standings.length - 2) zoneClass = 'relegation';
+                    
+                    return `
+                        <tr class="${zoneClass}">
+                            <td><strong>${team.position}</strong></td>
+                            <td><strong>${team.team}</strong></td>
+                            <td>${team.played}</td>
+                            <td>${team.won}</td>
+                            <td>${team.drawn}</td>
+                            <td>${team.lost}</td>
+                            <td>${team.goals_for}</td>
+                            <td>${team.goals_against}</td>
+                            <td>${team.goal_difference > 0 ? '+' : ''}${team.goal_difference}</td>
+                            <td><strong>${team.points}</strong></td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Puan durumu yükleme hatası:', error);
+            }
+        }
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadLiveScores();
+            loadPredictions();
+            loadPowerRankings();
+            loadTopScorers();
+            loadPastMatches();
+            loadStandings();
+            
+            // Her 10 saniyede bir canlı skorları güncelle
+            setInterval(loadLiveScores, 10000);
+            
+            // Her 60 saniyede bir tahminleri güncelle
+            setInterval(loadPredictions, 60000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Süper Lig AI - İddia Tahmin Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #43e97b;
+            --warning-color: #fa709a;
+            --danger-color: #f5576c;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.98);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+        }
+        
+        .prediction-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .coupon-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .safe-coupon {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .risky-coupon {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .confidence-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .confidence-high {
+            background: #43e97b;
+            color: white;
+        }
+        
+        .confidence-medium {
+            background: #feca57;
+            color: #333;
+        }
+        
+        .confidence-low {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .probability-bar {
+            height: 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+        
+        .probability-fill {
+            height: 100%;
+            background: white;
+            transition: width 0.5s ease;
+        }
+        
+        .match-item {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            transition: background 0.3s ease;
+        }
+        
+        .match-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .match-item:last-child {
+            border-bottom: none;
+        }
+        
+        .team-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .vs-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+        .tab-content {
+            padding: 2rem 0;
+        }
+        
+        .nav-pills .nav-link {
+            border-radius: 15px;
+            padding: 0.75rem 1.5rem;
+            margin: 0 0.25rem;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .odds-badge {
+            background: #feca57;
+            color: #333;
+            padding: 0.25rem 0.75rem;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .recommendation-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 0.5rem 0;
+        }
+        
+        .value-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .value-high {
+            background: #43e97b;
+        }
+        
+        .value-medium {
+            background: #feca57;
+        }
+        
+        .value-low {
+            background: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-brain text-primary"></i>
+                <strong>Süper Lig AI</strong>
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-database"></i>
+                    <span id="totalMatches">0</span> Maç Verisi
+                </span>
+                <span class="navbar-text ms-3">
+                    <i class="fas fa-chart-line"></i>
+                    Model Doğruluğu: <strong id="modelAccuracy">0%</strong>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-number" id="statTotalMatches">0</div>
+                    <div class="stat-label">Toplam Maç</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-number" id="statTotalSeasons">0</div>
+                    <div class="stat-label">Sezon</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-number" id="statTotalTeams">0</div>
+                    <div class="stat-label">Takım</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-number" id="statAccuracy">0%</div>
+                    <div class="stat-label">AI Doğruluğu</div>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav nav-pills justify-content-center mb-4" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="predictions-tab" data-bs-toggle="pill" data-bs-target="#predictions" type="button">
+                    <i class="fas fa-magic"></i> Tahminler
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="coupons-tab" data-bs-toggle="pill" data-bs-target="#coupons" type="button">
+                    <i class="fas fa-ticket-alt"></i> Kuponlar
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="analysis-tab" data-bs-toggle="pill" data-bs-target="#analysis" type="button">
+                    <i class="fas fa-chart-bar"></i> Analiz
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabContent">
+            <div class="tab-pane fade show active" id="predictions" role="tabpanel">
+                <div class="loading-spinner" id="predictionsLoading">
+                    <div class="spinner"></div>
+                    <p class="text-white mt-3">Tahminler yükleniyor...</p>
+                </div>
+                <div id="predictionsContainer"></div>
+            </div>
+
+            <div class="tab-pane fade" id="coupons" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-6 mb-4">
+                        <div class="card coupon-card safe-coupon">
+                            <div class="card-body">
+                                <h4 class="card-title">
+                                    <i class="fas fa-shield-alt"></i>
+                                    Güvenli Kupon
+                                </h4>
+                                <p class="card-text">Yüksek güvenilirlik, düşük risk</p>
+                                <div class="loading-spinner" id="safeCouponLoading">
+                                    <div class="spinner"></div>
+                                </div>
+                                <div id="safeCouponContainer"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 mb-4">
+                        <div class="card coupon-card risky-coupon">
+                            <div class="card-body">
+                                <h4 class="card-title">
+                                    <i class="fas fa-fire"></i>
+                                    Riskli Kupon
+                                </h4>
+                                <p class="card-text">Yüksek oran, yüksek risk</p>
+                                <div class="loading-spinner" id="riskyCouponLoading">
+                                    <div class="spinner"></div>
+                                </div>
+                                <div id="riskyCouponContainer"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="analysis" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">
+                            <i class="fas fa-search"></i>
+                            Takım Analizi
+                        </h4>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="teamSearchInput" placeholder="Takım adı girin (örn: Galatasaray, Fenerbahçe)">
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-primary w-100" onclick="searchTeam()">
+                                    <i class="fas fa-search"></i> Ara
+                                </button>
+                            </div>
+                        </div>
+                        <div class="loading-spinner" id="analysisLoading">
+                            <div class="spinner"></div>
+                        </div>
+                        <div id="analysisContainer" class="mt-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('statTotalMatches').textContent = stats.total_matches.toLocaleString();
+                document.getElementById('statTotalSeasons').textContent = stats.total_seasons;
+                document.getElementById('statTotalTeams').textContent = stats.total_teams;
+                document.getElementById('statAccuracy').textContent = (stats.model_accuracy * 100).toFixed(1) + '%';
+                
+                document.getElementById('totalMatches').textContent = stats.total_matches.toLocaleString();
+                document.getElementById('modelAccuracy').textContent = (stats.model_accuracy * 100).toFixed(1) + '%';
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadPredictions() {
+            document.getElementById('predictionsLoading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/predictions');
+                const predictions = await response.json();
+                
+                const container = document.getElementById('predictionsContainer');
+                container.innerHTML = '';
+                
+                if (predictions.length === 0) {
+                    container.innerHTML = '<div class="card"><div class="card-body text-center"><p>Yaklaşan maç bulunamadı.</p></div></div>';
+                    return;
+                }
+                
+                predictions.forEach(pred => {
+                    const confidenceClass = pred.confidence > 0.7 ? 'confidence-high' : pred.confidence > 0.5 ? 'confidence-medium' : 'confidence-low';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'card mb-3 prediction-card';
+                    card.innerHTML = `
+                        <div class="card-body">
+                            <div class="match-item">
+                                <div class="row align-items-center">
+                                    <div class="col-md-4">
+                                        <div class="team-name">${pred.home_team}</div>
+                                        <small class="text-white-50">Ev Sahibi</small>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <div class="vs-badge mb-2">VS</div>
+                                        <div class="confidence-badge ${confidenceClass}">
+                                            ${pred.prediction}
+                                        </div>
+                                        <div class="mt-2">
+                                            <small class="text-white">Güven: ${(pred.confidence * 100).toFixed(1)}%</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <div class="team-name">${pred.away_team}</div>
+                                        <small class="text-white-50">Deplasman</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-4">
+                                        <small class="text-white">Ev Sahibi Kazanır</small>
+                                        <div class="probability-bar">
+                                            <div class="probability-fill" style="width: ${(pred.probabilities['Home Win'] * 100).toFixed(1)}%"></div>
+                                        </div>
+                                        <small class="text-white">${(pred.probabilities['Home Win'] * 100).toFixed(1)}%</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-white">Beraberlik</small>
+                                        <div class="probability-bar">
+                                            <div class="probability-fill" style="width: ${(pred.probabilities['Draw'] * 100).toFixed(1)}%"></div>
+                                        </div>
+                                        <small class="text-white">${(pred.probabilities['Draw'] * 100).toFixed(1)}%</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <small class="text-white">Deplasman Kazanır</small>
+                                        <div class="probability-bar">
+                                            <div class="probability-fill" style="width: ${(pred.probabilities['Away Win'] * 100).toFixed(1)}%"></div>
+                                        </div>
+                                        <small class="text-white">${(pred.probabilities['Away Win'] * 100).toFixed(1)}%</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error loading predictions:', error);
+            } finally {
+                document.getElementById('predictionsLoading').style.display = 'none';
+            }
+        }
+
+        async function loadSafeCoupon() {
+            document.getElementById('safeCouponLoading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/safe-coupon');
+                const coupon = await response.json();
+                
+                const container = document.getElementById('safeCouponContainer');
+                
+                if (!coupon || !coupon.matches || coupon.matches.length === 0) {
+                    container.innerHTML = '<p>Uygun maç bulunamadı.</p>';
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <div class="mb-3">
+                        <h5>Toplam Oran: <span class="odds-badge">${coupon.total_odds.toFixed(2)}</span></h5>
+                        <p>Ortalama Güven: ${(coupon.avg_confidence * 100).toFixed(1)}%</p>
+                        <p>Önerilen Yatırım: %${coupon.recommended_stake.toFixed(1)}</p>
+                    </div>
+                    <hr>
+                    ${coupon.matches.map((match, idx) => `
+                        <div class="recommendation-item">
+                            <strong>${idx + 1}. ${match.home_team} vs ${match.away_team}</strong><br>
+                            <small>Tahmin: ${match.prediction} | Oran: ${match.odds.toFixed(2)} | Güven: ${(match.confidence * 100).toFixed(1)}%</small>
+                        </div>
+                    `).join('')}
+                `;
+            } catch (error) {
+                console.error('Error loading safe coupon:', error);
+            } finally {
+                document.getElementById('safeCouponLoading').style.display = 'none';
+            }
+        }
+
+        async function loadRiskyCoupon() {
+            document.getElementById('riskyCouponLoading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/risky-coupon');
+                const coupon = await response.json();
+                
+                const container = document.getElementById('riskyCouponContainer');
+                
+                if (!coupon || !coupon.matches || coupon.matches.length === 0) {
+                    container.innerHTML = '<p>Uygun maç bulunamadı.</p>';
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <div class="mb-3">
+                        <h5>Toplam Oran: <span class="odds-badge">${coupon.total_odds.toFixed(2)}</span></h5>
+                        <p>Ortalama Güven: ${(coupon.avg_confidence * 100).toFixed(1)}%</p>
+                        <p>Önerilen Yatırım: %${coupon.recommended_stake.toFixed(1)}</p>
+                    </div>
+                    <hr>
+                    ${coupon.matches.map((match, idx) => `
+                        <div class="recommendation-item">
+                            <strong>${idx + 1}. ${match.home_team} vs ${match.away_team}</strong><br>
+                            <small>Tahmin: ${match.prediction} | Oran: ${match.odds.toFixed(2)} | Güven: ${(match.confidence * 100).toFixed(1)}%</small>
+                        </div>
+                    `).join('')}
+                `;
+            } catch (error) {
+                console.error('Error loading risky coupon:', error);
+            } finally {
+                document.getElementById('riskyCouponLoading').style.display = 'none';
+            }
+        }
+
+        async function searchTeam() {
+            const teamName = document.getElementById('teamSearchInput').value;
+            if (!teamName) return;
+            
+            document.getElementById('analysisLoading').style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/team-analysis/${encodeURIComponent(teamName)}`);
+                const analysis = await response.json();
+                
+                const container = document.getElementById('analysisContainer');
+                
+                if (analysis.error) {
+                    container.innerHTML = `<div class="alert alert-warning">${analysis.error}</div>`;
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <h5>${analysis.team_name}</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>İstatistikler (Son 10 Maç)</h6>
+                            <ul class="list-group">
+                                <li class="list-group-item">Galibiyet: ${analysis.stats.wins}</li>
+                                <li class="list-group-item">Beraberlik: ${analysis.stats.draws}</li>
+                                <li class="list-group-item">Mağlubiyet: ${analysis.stats.losses}</li>
+                                <li class="list-group-item">Atılan Gol Ort: ${analysis.stats.avg_goals_scored.toFixed(2)}</li>
+                                <li class="list-group-item">Yenilen Gol Ort: ${analysis.stats.avg_goals_conceded.toFixed(2)}</li>
+                                <li class="list-group-item">Kazanma Oranı: ${(analysis.stats.win_rate * 100).toFixed(1)}%</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Form: ${analysis.form}</h6>
+                            <h6>Son Maçlar</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Rakip</th>
+                                            <th>Skor</th>
+                                            <th>Sonuç</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${analysis.recent_matches.slice(0, 5).map(match => `
+                                            <tr>
+                                                <td>${match.opponent}</td>
+                                                <td>${match.goals_for}-${match.goals_against}</td>
+                                                <td><span class="badge ${match.result === 'W' ? 'bg-success' : match.result === 'D' ? 'bg-warning' : 'bg-danger'}">${match.result}</span></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error searching team:', error);
+            } finally {
+                document.getElementById('analysisLoading').style.display = 'none';
+            }
+        }
+
+        document.getElementById('teamSearchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchTeam();
+            }
+        });
+
+        document.getElementById('coupons-tab').addEventListener('shown.bs.tab', function() {
+            loadSafeCoupon();
+            loadRiskyCoupon();
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            loadPredictions();
+        });
+    </script>
+</body>
+</html>
